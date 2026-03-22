@@ -1,0 +1,29 @@
+---
+- name: Ensure jenkins-job-builder is installed
+  pip:
+    name: jenkins-job-builder
+    state: present
+
+- name: Create jenkins_jobs directory
+  file:
+    path: "{{ playbook_dir }}/jenkins_jobs"
+    state: directory
+    mode: '0755'
+
+- name: Copy job templates
+  copy:
+    src: "{{ playbook_dir }}/jenkins_jobs/templates/"
+    dest: "{{ playbook_dir }}/jenkins_jobs/templates/"
+    mode: '0644'
+
+- name: Upload jobs to Jenkins
+  shell: |
+    cd {{ playbook_dir }}/jenkins_jobs
+    jenkins-jobs --conf jenkins-job-builder.ini update templates/
+  register: upload_result
+  changed_when: "'updated' in upload_result.stdout"
+  ignore_errors: yes
+
+- name: Display upload result
+  debug:
+    var: upload_result.stdout_lines

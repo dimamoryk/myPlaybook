@@ -1,0 +1,35 @@
+---
+- name: Prepare environment
+  tags: prepare_env
+  block:
+    - name: Install prerequisites
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - maven
+        - openjdk-21-jdk-headless
+        - docker-ce
+      tags: install_prereqs
+
+    - name: Build and run tests
+      block:
+        - name: Clone the test project from Git
+          git:
+            repo: "{{ GIT_REPO_URL }}"
+            dest: "{{ tests_directory }}"
+            version: "{{ branch_or_tag }}"
+            force: yes
+        - name: Clean and verify project
+          shell: |
+            cd "{{ tests_directory }}" &&
+            mvn clean test
+          when: browser_type is defined
+          tags: run_tests
+
+        - name: Delete target directory after testing
+          file:
+            path: "{{ tests_directory }}/target"
+            state: absent
+          ignore_errors: true
+          tags: cleanup_target

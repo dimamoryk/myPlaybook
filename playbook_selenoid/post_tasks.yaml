@@ -1,0 +1,9 @@
+---
+- name: Verify Selenoid Status
+  shell: "curl -I http://localhost:{{ selenoid_port }}"
+  register: selenoid_status
+  ignore_errors: yes
+
+- name: Display Selenoid Status
+  debug:
+    msg: "Selenoid is running on port {{ selenoid_port }}. Status: {{ selenoid_status.stdout_lines }}"

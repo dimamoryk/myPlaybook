@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'FEATURE', defaultValue: '', description: 'Конкретный feature файл (оставь пустым для всех)')
+        choice(name: 'TAGS', choices: ['@smoke', '@regression', '@all'], description: 'Теги для запуска')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/dimamoryk/AutotestWithCucumber.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Run Cucumber Tests') {
+            steps {
+                script {
+                    def cmd = "mvn clean test"
+                    if (params.FEATURE) {
+                        cmd += " -Dcucumber.features=${params.FEATURE}"
+                    }
+                    if (params.TAGS != '@all') {
+                        cmd += " -Dcucumber.filter.tags=${params.TAGS}"
+                    }
+                    sh cmd
+                }
+            }
+        }
+
+        stage('Publish Reports') {
+            steps {
+                cucumber(
+                    fileIncludePattern: 'target/cucumber-reports/*.json',
+                    sortingMethod: 'ALPHABETICAL',
+                    trendsLimit: 10
+                )
+                publishHTML([
+                    reportDir: 'target/cucumber-reports',
+                    reportFiles: 'index.html',
+                    reportName: 'Cucumber Reports'
+                ])
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        failure {
+            echo 'Cucumber tests failed!'
+        }
+        success {
+            echo 'Cucumber tests passed successfully!'
+        }
+    }
+}

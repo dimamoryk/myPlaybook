@@ -1,0 +1,24 @@
+---
+- name: Create Docker network
+  community.docker.docker_network:
+    name: selenoid_net
+    force: false
+    state: present
+
+- name: Install Docker Compose
+  get_url:
+    url: https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64
+    dest: /usr/local/bin/docker-compose
+    mode: '+x'
+
+- name: Render Docker Compose file
+  template:
+    src: "{{ playbook_dir }}/compose/config/docker-compose.yaml.j2"
+    dest: "{{ selenoid_path }}/docker-compose.yaml"
+
+- name: Run Docker Compose with latest settings
+  community.docker.docker_compose_v2:
+    project_src: "{{ selenoid_path }}"
+    files:
+      - docker-compose.yaml
+    state: present

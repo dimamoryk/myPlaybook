@@ -1,0 +1,13 @@
+---
+- macro:
+    name: git_checkout
+    params:
+      - repo_url:
+          default: ""
+      - branch:
+          default: "main"
+    steps:
+      - git:
+          url: "{repo_url}"
+          branch: "{branch}"
+          credentials_id: "github-credentials"

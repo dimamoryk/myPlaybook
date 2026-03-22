@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    environment {
+        WIREMOCK_URL = "${params.WIREMOCK_URL}"
+        EXPECTATIONS_ENV = "${params.EXPECTATIONS_ENV}"
+    }
+
+    parameters {
+        string(name: 'WIREMOCK_URL', defaultValue: 'http://wiremock_server:8080', description: 'URL Wiremock для стабов')
+        choice(name: 'EXPECTATIONS_ENV', choices: ['dev', 'test', 'staging'], description: 'Окружение для проверки ожиданий')
+        string(name: 'TEST_SUITE', defaultValue: '', description: 'Конкретный тестовый класс или пакет (например, *ExpectationsTest)')
+        booleanParam(name: 'CLEAN_BUILD', defaultValue: true, description: 'Выполнять mvn clean перед тестами')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/dimamoryk/AutotestWithExpectations1.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Run Expectations Tests') {
+            steps {
+                script {
+                    def mvnCmd = params.CLEAN_BUILD ? 'mvn clean test' : 'mvn test'
+
+                    if (params.TEST_SUITE?.trim()) {
+
+                        mvnCmd += " -Dtest=${params.TEST_SUITE}"
+                    }
+
+                    mvnCmd += " -Dwiremock.url=${WIREMOCK_URL}"
+                    mvnCmd += " -Denvironment=${EXPECTATIONS_ENV}"
+
+                    sh mvnCmd
+                }
+            }
+        }
+
+        stage('Publish Reports') {
+            steps {
+                publishHTML([
+                    reportDir: 'target/surefire-reports',
+                    reportFiles: '*.html',
+                    reportName: 'Expectations Test Reports'
+                ])
+                junit 'target/surefire-reports/*.xml'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        failure {
+            echo 'Проверка ожиданий не удалась!'
+        }
+        success {
+            echo 'Все ожидания оправдались!'
+        }
+    }
+}

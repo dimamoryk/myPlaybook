@@ -1,0 +1,12 @@
+- name: Copy Nginx config
+  copy:
+    src: "{{ playbook_dir }}/templates/nginx/default.conf"
+    dest: "/etc/nginx/conf.d/default.conf"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Restart Nginx
+  service:
+   name: nginx
+   state: restarted

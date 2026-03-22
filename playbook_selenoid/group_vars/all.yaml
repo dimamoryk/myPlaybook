@@ -1,0 +1,46 @@
+---
+chrome_default_version: latest
+chrome_versions:
+  - "128.0"
+  - "127.0"
+
+firefox_default_version: latest
+firefox_versions:
+  - "112.0"
+  - "111.0"
+
+# Переменные из окружения (для Ansible)
+ansible_user: "{{ lookup('env', 'ANSIBLE_USER') | default('dima', true) }}"
+ansible_password: "{{ lookup('env', 'ANSIBLE_PASSWORD') | default('', true) }}"
+ansible_become_pass: "{{ lookup('env', 'ANSIBLE_BECOME_PASS') | default('', true) }}"
+
+
+# Версии и настройки
+selenoid_version: 1.11.3
+network_name: selenoid_net
+
+
+# Пути
+selenoid_path: /etc/selenoid
+configs_dir: "{{ selenoid_path }}"
+logs_dir: /var/log/selenoid
+tests_directory: /home/dima
+wiremock_directory: "{{ playbook_dir }}/roles/wiremock"
+compose_config_dir: "{{ playbook_dir }}/templates/compose"
+
+
+# Порты
+selenoid_port: 4444
+selenoid_ui_port: 7070
+jenkins_port: 8080
+wiremock_port: 8082
+registry_port: 5005
+
+
+# Git репозиторий с тестами
+branch_or_tag: main
+GIT_REPO_URL: "https://github.com/dimamoryk/AutotestWithSolenoid.git"
+browser_type: chrome
+
+browser_version1: "128.0"
+browser_version2: "127.0"

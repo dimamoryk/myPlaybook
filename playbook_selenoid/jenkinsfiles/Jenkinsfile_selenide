@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+
+    environment {
+        BROWSER = "${params.BROWSER}"
+        HEADLESS = "${params.HEADLESS}"
+        SELENOID_URL = "http://selenoid1:4444"
+    }
+
+    parameters {
+        string(name: 'BROWSER', defaultValue: 'chrome', description: 'Браузер: chrome/firefox')
+        booleanParam(name: 'HEADLESS', defaultValue: false, description: 'Headless режим')
+        string(name: 'THREAD_COUNT', defaultValue: '4', description: 'Количество потоков')
+        choice(name: 'TESTS_SCOPE', choices: ['all', 'critical', 'extended'], description: 'Объем тестов')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/dimamoryk/AutoTestWithSelenide.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Run Selenide Tests') {
+            steps {
+                sh '''
+                    mvn clean test \
+                        -Dbrowser=${BROWSER} \
+                        -Dheadless=${HEADLESS} \
+                        -Dthreads=${THREAD_COUNT} \
+                        -Dtest.scope=${TESTS_SCOPE}
+                '''
+            }
+        }
+
+        stage('Publish Reports') {
+            steps {
+                publishHTML([
+                    reportDir: 'target/surefire-reports',
+                    reportFiles: '*.html',
+                    reportName: 'Selenide Test Reports'
+                ])
+                junit 'target/surefire-reports/*.xml'
+                allure([
+                    results: [[path: 'target/allure-results']],
+                    report: 'target/allure-report'
+                ])
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        failure {
+            echo 'Selenide tests failed!'
+        }
+        success {
+            echo 'Selenide tests passed successfully!'
+        }
+    }
+}

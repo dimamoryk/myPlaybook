@@ -1,0 +1,24 @@
+{
+  "chrome": {
+    "default": "{{chrome_default_version}}",
+    "versions": {
+      {% for version in chrome_versions -%}
+      "{{ version }}": {
+        "image": "selenoid/chrome:{{version}}",
+        "port": "4444"
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    }
+  },
+  "firefox": {
+    "default": "{{firefox_default_version}}",
+    "versions": {
+      {% for version in firefox_versions -%}
+      "{{version}}": {
+        "image": "selenoid/firefox:{{version}}",
+        "port": "4444"
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    }
+  }
+}

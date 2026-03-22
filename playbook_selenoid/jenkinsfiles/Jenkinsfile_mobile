@@ -1,0 +1,61 @@
+pipeline {
+    agent any
+
+    environment {
+        APPIUM_URL = "${params.APPIUM_URL}"
+        PLATFORM = "${params.PLATFORM}"
+        DEVICE_NAME = "${params.DEVICE_NAME}"
+    }
+
+    parameters {
+        choice(name: 'PLATFORM', choices: ['android', 'ios'], description: 'Платформа')
+        string(name: 'APPIUM_URL', defaultValue: 'http://appium:4723', description: 'Appium Server URL')
+        string(name: 'DEVICE_NAME', defaultValue: 'Android Emulator', description: 'Имя устройства')
+        string(name: 'APP_PATH', defaultValue: '/apps/app.apk', description: 'Путь к приложению')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/dimamoryk/AutoTestWithMobileAppium.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Run Mobile Tests') {
+            steps {
+                sh '''
+                    mvn clean test \
+                        -Dplatform=${PLATFORM} \
+                        -Dappium.url=${APPIUM_URL} \
+                        -Ddevice.name=${DEVICE_NAME} \
+                        -Dapp.path=${APP_PATH}
+                '''
+            }
+        }
+
+        stage('Publish Reports') {
+            steps {
+                publishHTML([
+                    reportDir: 'target/surefire-reports',
+                    reportFiles: '*.html',
+                    reportName: 'Mobile Test Reports'
+                ])
+                junit 'target/surefire-reports/*.xml'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        failure {
+            echo 'Mobile tests failed!'
+        }
+        success {
+            echo 'Mobile tests passed successfully!'
+        }
+    }
+}

@@ -1,0 +1,108 @@
+version: '3.8'
+services:
+  # --- Селеноидная инфраструктура ---
+  selenoid1:
+    image: aerokube/selenoid:1.11.3
+    hostname: selenoid1
+    networks:
+      - selenoid_net # Одна общая сеть для всех
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./browsers.json:/etc/selenoid/browsers.json:ro
+      - ./logs:/var/log/selenoid
+    ports:
+      - "4444:4444" # Основной порт
+    command: ["-container-network", "selenoid_net", "-limit", "10"]
+
+  selenoid2:
+    image: aerokube/selenoid:1.11.3
+    hostname: selenoid2
+    networks:
+      - selenoid_net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./browsers.json:/etc/selenoid/browsers.json:ro
+      - ./logs:/var/log/selenoid
+    ports:
+      - "4446:4444" # Альтернативный порт
+    command: ["-container-network", "selenoid_net", "-limit", "10"]
+
+  ggr:
+    image: aerokube/ggr:1.7.2
+    hostname: ggr
+    networks:
+      - selenoid_net
+    volumes:
+      - ./grid-router:/etc/grid-router:ro
+    command: ["-guests-allowed", "-guests-quota", "test", "-verbose"]
+    depends_on:
+      - selenoid1
+      - selenoid2
+
+  ui:
+    image: aerokube/selenoid-ui:latest
+    hostname: selenoid-ui
+    networks:
+      - selenoid_net
+    ports:
+      - "7070:8080"
+    environment:
+      SELENOID_UI_URL: http://selenoid1:4444/status
+      SELENOID_UI_URL2: http://selenoid2:4444/status
+    depends_on:
+      - selenoid1
+      - selenoid2
+
+  # --- CI/CD-инфраструктура ---
+  registry:
+    image: registry:3.0.0
+    restart: always
+    container_name: registry
+    hostname: registry
+    networks:
+      - selenoid_net
+    volumes:
+      - ./registry:/var/lib/registry
+    ports:
+      - "5005:5005"
+    environment:
+      REGISTRY_HTTP_ADDR: 0.0.0.0:5005
+
+  jenkins:
+    image: jenkins/jenkins:jdk21
+    restart: always
+    container_name: jenkins
+    hostname: jenkins
+    user: root
+    networks:
+      - selenoid_net
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    environment:
+      JAVA_OPTS: "-Dhudson.model.DownloadService.noSignatureCheck=true"
+      DOCKER_HOST: "unix:///var/run/docker.sock"
+      JENKINS_OPTS: "--prefix=/my_jenkins"
+    volumes:
+      - ./jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  nginx-proxy:
+    image: nginx:alpine
+    restart: always
+    container_name: nginx-proxy
+    hostname: nginx-proxy
+    networks:
+      - selenoid_net
+    depends_on:
+      - jenkins
+      - registry
+      - ui
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8081:80"
+
+networks:
+  selenoid_net:

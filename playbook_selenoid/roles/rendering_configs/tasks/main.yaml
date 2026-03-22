@@ -1,0 +1,97 @@
+---
+- name: Create directory for Selenoid config
+  file:
+    path: /etc/selenoid
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: selenoid_config
+
+- name: Render Selenoid config (browsers.json)
+  template:
+    src: "{{ playbook_dir }}/templates/browsers.json.j2"
+    dest: "/etc/selenoid/browsers.json"
+  tags: render_browsers
+
+- name: Pull selenoid/chrome images
+  community.docker.docker_image:
+    name: selenoid/chrome
+    tag: "{{ item }}"
+    source: pull
+    state: present
+  loop:
+    - "128.0"
+    - "127.0"
+    - "latest"
+  tags: selenoid_images
+
+- name: Pull selenoid/firefox images
+  community.docker.docker_image:
+    name: selenoid/firefox
+    tag: "{{ item }}"
+    source: pull
+    state: present
+  loop:
+    - "112.0"
+    - "111.0"
+    - "latest"
+  tags: selenoid_images
+# Создание Docker сетей
+
+- name: Create docker networks
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - "{{ network_name }}"
+  tags: selenoid_config
+
+
+# Создание docker-compose.yaml для selenoid
+
+- name: Create docker-compose.yaml for selenoid
+  template:
+    src: "{{ playbook_dir }}/templates/compose/config/docker-compose.yaml.j2"
+    dest: "/etc/selenoid/docker-compose.yaml"
+  tags: render_docker_compose
+
+
+# Создание папок для grid-router
+
+- name: Create grid-router folder structure
+  file:
+    path: "/etc/selenoid/grid-router/quota"
+    state: directory
+    recurse: true
+  tags: selenoid_config
+
+
+# Рендер grid-router.json
+
+- name: Render grid-router.json
+  template:
+    src: "{{ playbook_dir }}/templates/grid_router.json.j2"
+    dest: "/etc/selenoid/grid-router.json"
+    owner: root
+    group: root
+    mode: '0644'
+  tags: selenoid_config
+
+
+# Рендер test.xml quota file
+
+- name: Render test.xml quota file
+  template:
+    src: "{{ playbook_dir }}/templates/test.xml.j2"
+    dest: "/etc/selenoid/grid-router/quota/test.xml"
+  tags: selenoid_config
+
+
+# Запуск selenoid через docker-compose
+
+- name: Running selenoid via docker-compose orchestration
+  community.docker.docker_compose_v2:
+    project_src: /etc/selenoid
+    state: present
+  tags: render_docker_compose

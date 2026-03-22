@@ -1,0 +1,15 @@
+---
+- name: Setup Selenoid
+  hosts: localhost
+  become: true
+  gather_facts: true
+  vars_files:
+    - group_vars/all.yaml
+
+  roles:
+    - common
+    - docker
+    - rendering_configs
+    - wiremock
+    - jobs_uploader
+    - run_tests

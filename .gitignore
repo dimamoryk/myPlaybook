@@ -1,0 +1,20 @@
+target/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+/tmp/*
+*.log
+
+# Секреты и токены
+.env
+*.token
+*.secret
+*_secret.yml
+vault.yaml
+*.key
+*.pem
+credentials.xml
+github_token

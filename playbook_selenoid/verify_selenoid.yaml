@@ -1,0 +1,11 @@
+---
+- name: Verify Selenoid Status
+  hosts: localhost
+  become: true
+  gather_facts: true
+
+  vars_files:
+    - group_vars/selenoid.yaml
+
+  tasks:
+    - include_tasks: post_tasks.yaml

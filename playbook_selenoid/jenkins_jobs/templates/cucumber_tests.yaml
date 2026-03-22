@@ -1,0 +1,14 @@
+---
+- job:
+    name: "Cucumber-Tests"
+    description: "Запуск BDD автотестов с Cucumber"
+    project-type: pipeline
+    pipeline-scm:
+      scm:
+        - git:
+            url: "https://github.com/dimamoryk/AutotestWithCucumber.git"
+            branch: "main"
+            credentials-id: "github-credentials"
+      script-path: "Jenkinsfile"
+    triggers:
+      - pollscm: "H/30 * * * *"

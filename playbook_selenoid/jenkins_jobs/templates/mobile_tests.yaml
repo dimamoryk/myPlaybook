@@ -1,0 +1,23 @@
+---
+- job:
+    name: "Mobile-Tests-Appium"
+    description: "Запуск мобильных автотестов через Appium"
+    project-type: pipeline
+    pipeline-scm:
+      scm:
+        - git:
+            url: "https://github.com/dimamoryk/AutoTestWithMobileAppium.git"
+            branch: "main"
+            credentials-id: "github-credentials"
+      script-path: "Jenkinsfile"
+    parameters:
+      - string:
+          name: "PLATFORM"
+          default: "android"
+          description: "Платформа (android/ios)"
+      - string:
+          name: "APPIUM_URL"
+          default: "http://appium:4723"
+          description: "Appium Server URL"
+    triggers:
+      - pollscm: "H/20 * * * *"

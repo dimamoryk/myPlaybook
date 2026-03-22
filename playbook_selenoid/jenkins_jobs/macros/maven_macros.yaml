@@ -1,0 +1,10 @@
+---
+- macro:
+    name: maven_build
+    params:
+      - goals:
+          default: "clean test"
+    steps:
+      - maven:
+          goals: "{goals}"
+          settings_file: "/var/jenkins_home/maven-settings.xml"

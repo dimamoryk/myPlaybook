@@ -1,0 +1,14 @@
+---
+env:
+  DOCKER_HOST: "unix:///var/run/docker.sock"
+  SELENOID_HOST: "http://selenoid1:4444"
+  WIREMOCK_HOST: "http://wiremock_server:8080"
+  REGISTRY_HOST: "http://registry:5000"
+
+git_credentials:
+  - git:
+      credentials_id: "github-credentials"
+      url: "https://github.com/dimamoryk"
+
+maven_settings:
+  settings_file: "/var/jenkins_home/maven-settings.xml

@@ -1,0 +1,11 @@
+[selenoid]
+172.25.128.108
+
+[jenkins]
+url=http://localhost:8080/my_jenkins/
+user=admin
+password=admin1985
+
+[job_builder]
+recursive=True
+keep_descriptions=False

@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    environment {
+        WIREMOCK_URL = "${params.WIREMOCK_URL}"
+        API_BASE_URL = "${params.API_BASE_URL}"
+    }
+
+    parameters {
+        string(name: 'WIREMOCK_URL', defaultValue: 'http://wiremock_server:8080', description: 'Wiremock URL')
+        string(name: 'API_BASE_URL', defaultValue: 'http://localhost:8080', description: 'API Base URL')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'test', 'staging'], description: 'Окружение')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/dimamoryk/RestAssuredAutoTest.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Run API Tests') {
+            steps {
+                sh '''
+                    mvn clean test \
+                        -Dwiremock.url=${WIREMOCK_URL} \
+                        -Dapi.base.url=${API_BASE_URL} \
+                        -Denvironment=${ENVIRONMENT}
+                '''
+            }
+        }
+
+        stage('Publish Reports') {
+            steps {
+                publishHTML([
+                    reportDir: 'target/surefire-reports',
+                    reportFiles: '*.html',
+                    reportName: 'API Test Reports'
+                ])
+                junit 'target/surefire-reports/*.xml'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        failure {
+            echo 'API tests failed!'
+        }
+        success {
+            echo 'API tests passed successfully!'
+        }
+    }
+}

@@ -1,0 +1,23 @@
+---
+- job:
+    name: "UI-Tests-Selenoid"
+    description: "Запуск UI автотестов через Selenoid"
+    project-type: pipeline
+    pipeline-scm:
+      scm:
+        - git:
+            url: "https://github.com/dimamoryk/AutotestWithSelenoid.git"
+            branch: "main"
+            credentials-id: "github-credentials"
+      script-path: "Jenkinsfile"
+    parameters:
+      - string:
+          name: "BROWSER"
+          default: "chrome"
+          description: "Браузер для тестов (chrome/firefox)"
+      - string:
+          name: "SELENOID_URL"
+          default: "http://selenoid1:4444"
+          description: "Selenoid Grid URL"
+    triggers:
+      - pollscm: "H/15 * * * *"
