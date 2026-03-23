@@ -16,69 +16,60 @@ echo "🚀 Начинаем деплой джоб в Jenkins..."
 JENKINS_PASS="${JENKINS_PASSWORD}"
 if [ -z "$JENKINS_PASS" ]; then
     echo -e "${RED}❌ Переменная JENKINS_PASSWORD не задана.${NC}"
-    echo "Экспортируйте: export JENKINS_PASSWORD='ваш_пароль'"
+    echo "Экспортируйте: export JENKINS_PASSWORD='admin1985'"
     exit 1
 fi
 
-JENKINS_URL="http://localhost:8080"
+JENKINS_URL="http://localhost:8080/my_jenkins/"
 AUTH="admin:${JENKINS_PASS}"
 
 echo "🔍 Проверяем доступность Jenkins..."
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${JENKINS_URL}/api/json" --user "${AUTH}")
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${JENKINS_URL}api/json" --user "${AUTH}" 2>/dev/null)
+
 if [ "$HTTP_CODE" != "200" ]; then
-    echo -e "${RED}❌ Jenkins недоступен или неправильный пароль (HTTP ${HTTP_CODE})${NC}"
+    echo -e "${RED}❌ Jenkins недоступен (HTTP ${HTTP_CODE})${NC}"
+    echo "Проверь:"
+    echo "  - Jenkins запущен: docker ps | grep jenkins"
+    echo "  - Пароль: ${JENKINS_PASS}"
+    echo "  - URL: ${JENKINS_URL}"
     exit 1
 fi
-
-CRUMB_JSON=$(curl -s --user "${AUTH}" "${JENKINS_URL}/crumbIssuer/api/json")
-CRUMB=$(echo "$CRUMB_JSON" | grep -o '"crumb":"[^"]*"' | cut -d'"' -f4)
-CRUMB_FIELD=$(echo "$CRUMB_JSON" | grep -o '"crumbRequestField":"[^"]*"' | cut -d'"' -f4)
-if [ -n "$CRUMB" ] && [ -n "$CRUMB_FIELD" ]; then
-    HEADER="$CRUMB_FIELD: $CRUMB"
-    echo -e "${GREEN}✅ Crumb получен${NC}"
-else
-    echo -e "${YELLOW}⚠️ Crumb не найден (возможно, CSRF отключён)${NC}"
-    HEADER=""
-fi
+echo -e "${GREEN}✅ Jenkins доступен${NC}"
 
 echo "🔐 Добавляем GitHub credentials..."
-CRED_EXISTS=$(curl -s -X GET "${JENKINS_URL}/credentials/store/system/domain/_/credential/github-credentials/api/json" --user "${AUTH}" | grep -c "description")
-if [ "$CRED_EXISTS" -eq 0 ]; then
+CRED_CHECK=$(curl -s -X GET "${JENKINS_URL}credentials/store/system/domain/_/credential/github-credentials/api/json" --user "${AUTH}" 2>/dev/null | grep -c "id")
+
+if [ "$CRED_CHECK" -eq 0 ]; then
     cat > /tmp/github_creds.xml << EOF
 <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
   <scope>GLOBAL</scope>
   <id>github-credentials</id>
-  <description>GitHub credentials for dimamoryk</description>
+  <description>GitHub credentials</description>
   <username>dimamoryk</username>
   <password>${GITHUB_TOKEN}</password>
 </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
 EOF
-    curl -X POST "${JENKINS_URL}/credentials/store/system/domain/_/createCredentials" \
+    curl -X POST "${JENKINS_URL}credentials/store/system/domain/_/createCredentials" \
         --user "${AUTH}" \
         --header "Content-Type: application/xml" \
-        ${HEADER:+ -H "$HEADER"} \
-        --data-binary @/tmp/github_creds.xml
+        --data-binary @/tmp/github_creds.xml 2>/dev/null
     echo -e "${GREEN}✅ GitHub credentials добавлены${NC}"
 else
     echo -e "${GREEN}✅ GitHub credentials уже существуют${NC}"
 fi
 
 declare -A JOBS=(
-    ["UI-Tests-Selenoid"]="https://github.com/dimamoryk/AutotestWithSelenoid.git"
-    ["API-Tests-RestAssured"]="https://github.com/dimamoryk/RestAssuredAutoTest.git"
-    ["Mobile-Tests-Appium"]="https://github.com/dimamoryk/AutoTestWithMobileAppium.git"
+    ["UI-Tests"]="https://github.com/dimamoryk/AutotestWithSelenoid.git"
+    ["API-Tests"]="https://github.com/dimamoryk/RestAssuredAutoTest.git"
+    ["Mobile-Tests"]="https://github.com/dimamoryk/AutoTestWithMobileAppium.git"
     ["Cucumber-Tests"]="https://github.com/dimamoryk/AutotestWithCucumber.git"
     ["Selenide-Tests"]="https://github.com/dimamoryk/AutoTestWithSelenide.git"
     ["Playwright-Tests"]="https://github.com/dimamoryk/AutoTestWithPlayWright2.git"
-    ["Expectations-Tests"]="https://github.com/dimamoryk/AutotestWithExpectations1.git"
 )
 
-JOB_XML_TEMPLATE='<?xml version="1.1" encoding="UTF-8"?>
+JOB_XML='<?xml version="1.1" encoding="UTF-8"?>
 <flow-definition plugin="workflow-job">
-  <actions/>
   <description>Автотесты</description>
-  <keepDependencies>false</keepDependencies>
-  <properties/>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps">
     <scm class="hudson.plugins.git.GitSCM" plugin="git">
       <userRemoteConfigs>
@@ -96,28 +87,27 @@ JOB_XML_TEMPLATE='<?xml version="1.1" encoding="UTF-8"?>
     <scriptPath>Jenkinsfile</scriptPath>
     <lightweight>true</lightweight>
   </definition>
-  <triggers/>
-  <disabled>false</disabled>
 </flow-definition>'
 
 for JOB_NAME in "${!JOBS[@]}"; do
     REPO_URL="${JOBS[$JOB_NAME]}"
     echo "📦 Создаю джобу: ${JOB_NAME}"
-    JOB_XML="${JOB_XML_TEMPLATE/REPO_URL_PLACEHOLDER/$REPO_URL}"
+    JOB_XML_FINAL="${JOB_XML/REPO_URL_PLACEHOLDER/$REPO_URL}"
+
     RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "${JENKINS_URL}/createItem?name=${JOB_NAME}" \
+        "${JENKINS_URL}createItem?name=${JOB_NAME}" \
         --user "${AUTH}" \
         --header "Content-Type: application/xml" \
-        ${HEADER:+ -H "$HEADER"} \
-        --data-binary "${JOB_XML}")
+        --data-binary "${JOB_XML_FINAL}" 2>/dev/null)
+
     if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "201" ]; then
         echo -e "${GREEN}   ✅ Джоба ${JOB_NAME} создана${NC}"
     elif [ "$RESPONSE" = "409" ]; then
         echo -e "   ⚠️  Джоба ${JOB_NAME} уже существует"
     else
-        echo -e "${RED}   ❌ Ошибка при создании ${JOB_NAME} (HTTP ${RESPONSE})${NC}"
+        echo -e "${RED}   ❌ Ошибка (HTTP ${RESPONSE})${NC}"
     fi
 done
 
 echo -e "${GREEN}🎉 Деплой завершён!${NC}"
-echo "📋 Проверь джобы: http://localhost:8080/my_jenkins/"
+echo "📋 Проверь джобы: ${JENKINS_URL}"

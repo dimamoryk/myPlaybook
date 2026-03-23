@@ -1,35 +1,61 @@
 ---
-- name: Prepare environment
-  tags: prepare_env
-  block:
-    - name: Install prerequisites
-      apt:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - maven
-        - openjdk-21-jdk-headless
-        - docker-ce
-      tags: install_prereqs
+- name: Install prerequisites
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - maven
+    - openjdk-21-jdk-headless
+    - git
 
-    - name: Build and run tests
-      block:
-        - name: Clone the test project from Git
-          git:
-            repo: "{{ GIT_REPO_URL }}"
-            dest: "{{ tests_directory }}"
-            version: "{{ branch_or_tag }}"
-            force: yes
-        - name: Clean and verify project
-          shell: |
-            cd "{{ tests_directory }}" &&
-            mvn clean test
-          when: browser_type is defined
-          tags: run_tests
+- name: Create tests directory
+  file:
+    path: /tmp/automation_tests
+    state: directory
+    mode: '0755'
 
-        - name: Delete target directory after testing
-          file:
-            path: "{{ tests_directory }}/target"
-            state: absent
-          ignore_errors: true
-          tags: cleanup_target
+- name: Clone UI tests (Selenoid)
+  git:
+    repo: "https://{{ github_token | default('') }}@github.com/dimamoryk/AutotestWithSelenoid.git"
+    dest: "/tmp/automation_tests/ui-tests"
+    version: main
+  when: github_token is defined
+  ignore_errors: yes
+
+- name: Clone API tests (RestAssured)
+  git:
+    repo: "https://{{ github_token | default('') }}@github.com/dimamoryk/RestAssuredAutoTest.git"
+    dest: "/tmp/automation_tests/api-tests"
+    version: main
+  when: github_token is defined
+  ignore_errors: yes
+
+- name: Clone Mobile tests (Appium)
+  git:
+    repo: "https://{{ github_token | default('') }}@github.com/dimamoryk/AutoTestWithMobileAppium.git"
+    dest: "/tmp/automation_tests/mobile-tests"
+    version: main
+  when: github_token is defined
+  ignore_errors: yes
+
+- name: Run UI tests
+  shell: |
+    cd /tmp/automation_tests/ui-tests
+    mvn clean test
+  ignore_errors: yes
+  when: "'ui' in test_type or test_type == 'all'"
+
+- name: Run API tests
+  shell: |
+    cd /tmp/automation_tests/api-tests
+    mvn clean test
+  ignore_errors: yes
+  when: "'api' in test_type or test_type == 'all'"
+
+- name: Run Mobile tests
+  shell: |
+    cd /tmp/automation_tests/mobile-tests
+    mvn clean test
+  ignore_errors: yes
+  when: "'mobile' in test_type or test_type == 'all'"
+

@@ -1,0 +1,11 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <useSecurity>true</useSecurity>
+  <disableCSRFProtection>true</disableCSRFProtection>
+  <authorizationStrategy class="hudson.security.FullControlOnceLoggedInAuthorizationStrategy">
+    <denyAnonymousReadAccess>false</denyAnonymousReadAccess>
+  </authorizationStrategy>
+  <securityRealm class="hudson.security.HudsonPrivateSecurityRealm">
+    <disableSignup>true</disableSignup>
+  </securityRealm>
+</hudson>

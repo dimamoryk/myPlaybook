@@ -1,0 +1,20 @@
+---
+- name: Get Latest Chrome version
+  uri:
+    url: https://chromedriver.storage.googleapis.com/LATEST_RELEASE
+    return_content: yes
+  register: chrome_latest_version
+
+- name: Set Chrome version variable
+  set_fact:
+    chrome_version: "{{ chrome_latest_version.content }}"
+
+- name: Get latest Firefox version
+  uri:
+    url: https://product-details.mozilla.org/1.0/firefox_versions.json
+    return_content: yes
+  register: firefox_versions_json
+
+- name: Extract latest Firefox release version
+  set_fact:
+    firefox_version: "{{ firefox_versions_json.json.LATEST_FIREFOX_VERSION }}"

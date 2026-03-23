@@ -2,18 +2,16 @@ pipeline {
     agent any
 
     environment {
-
-        DATABASE_URL = "jdbc:postgresql://sql.otus.kartushin.su:5432/wishlist"
-        DATABASE_USERNAME = credentials('postgres-username')
-        DATABASE_PASSWORD = credentials('postgres-password')
-        APPIUM_ANDROID_12_URL = "http://localhost:4723"
-        APPIUM_ANDROID_14_URL = "http://localhost:4724"
+        APPIUM_URL = "${params.APPIUM_URL}"
+        PLATFORM = "${params.PLATFORM}"
+        DEVICE_NAME = "${params.DEVICE_NAME}"
     }
 
     parameters {
-        string(name: 'DATABASE_USERNAME', defaultValue: '', description: 'Логин БД')
-        string(name: 'DATABASE_PASSWORD', defaultValue: '', description: 'Пароль БД')
-        choice(name: 'EMULATOR', choices: ['android-12', 'android-14'], description: 'Какой эмулятор использовать')
+        choice(name: 'PLATFORM', choices: ['android', 'ios'], description: 'Платформа')
+        string(name: 'APPIUM_URL', defaultValue: 'http://appium:4723', description: 'Appium Server URL')
+        string(name: 'DEVICE_NAME', defaultValue: 'Android Emulator', description: 'Имя устройства')
+        string(name: 'APP_PATH', defaultValue: '/apps/app.apk', description: 'Путь к приложению')
     }
 
     stages {
@@ -25,32 +23,15 @@ pipeline {
             }
         }
 
-        stage('Start Docker Compose') {
-            steps {
-                script {
-
-                    sh '''
-                        docker-compose up -d
-                        # Ждём, пока эмуляторы поднимутся (можно добавить проверку)
-                        sleep 30
-                    '''
-                }
-            }
-        }
-
         stage('Run Mobile Tests') {
             steps {
-                script {
-
-                    def appiumPort = (params.EMULATOR == 'android-12') ? '4723' : '4724'
-                    sh """
-                        mvn clean test \
-                            -DdatabaseUrl=${DATABASE_URL} \
-                            -DdatabaseUsername=${params.DATABASE_USERNAME} \
-                            -DdatabasePassword=${params.DATABASE_PASSWORD} \
-                            -Dappium.port=${appiumPort}
-                    """
-                }
+                sh '''
+                    mvn clean test \
+                        -Dplatform=${PLATFORM} \
+                        -Dappium.url=${APPIUM_URL} \
+                        -Ddevice.name=${DEVICE_NAME} \
+                        -Dapp.path=${APP_PATH}
+                '''
             }
         }
 
