@@ -14,14 +14,14 @@ fi
 echo "🚀 Начинаем деплой джоб в Jenkins..."
 
 JENKINS_PASS="${JENKINS_PASSWORD}"
-if [ -z "$JENKINS_PASS" ]; then
+if [ -z "$JENKINS_PASSWORD" ]; then
     echo -e "${RED}❌ Переменная JENKINS_PASSWORD не задана.${NC}"
     echo "Экспортируйте: export JENKINS_PASSWORD='admin1985'"
     exit 1
 fi
 
 JENKINS_URL="http://localhost:8080/my_jenkins/"
-AUTH="admin:${JENKINS_PASS}"
+AUTH="admin:${JENKINS_PASSWORD}"
 
 echo "🔍 Проверяем доступность Jenkins..."
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${JENKINS_URL}api/json" --user "${AUTH}" 2>/dev/null)
@@ -30,7 +30,7 @@ if [ "$HTTP_CODE" != "200" ]; then
     echo -e "${RED}❌ Jenkins недоступен (HTTP ${HTTP_CODE})${NC}"
     echo "Проверь:"
     echo "  - Jenkins запущен: docker ps | grep jenkins"
-    echo "  - Пароль: ${JENKINS_PASS}"
+    echo "  - Пароль: ${JENKINS_PASSWORD}"
     echo "  - URL: ${JENKINS_URL}"
     exit 1
 fi
