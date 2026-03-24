@@ -24,7 +24,8 @@
 
 - name: Clone API tests (RestAssured)
   git:
-    repo: "https://github.com/dimamoryk/RestAssuredAutoTest.git"
+#    repo: "https://github.com/dimamoryk/RestAssuredAutoTest.git"
+    repo: "https://github.com/dimamoryk/AutotestWithStubApi1.git"
     dest: "/tmp/automation_tests/api-tests"
     version: main
   ignore_errors: yes
