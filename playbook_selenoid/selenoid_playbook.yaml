@@ -12,4 +12,4 @@
     - rendering_configs
     - wiremock
     - jobs_uploader
-#    - run_tests
+    - run_tests
