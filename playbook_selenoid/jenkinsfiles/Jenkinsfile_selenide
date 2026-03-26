@@ -1,23 +1,24 @@
 pipeline {
     agent any
 
-    environment {
-        BROWSER = "${params.BROWSER}"
-        HEADLESS = "${params.HEADLESS}"
-        SELENOID_URL = "http://selenoid1:4444"
-    }
-
     parameters {
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Ветка репозитория')
         string(name: 'BROWSER', defaultValue: 'chrome', description: 'Браузер: chrome/firefox')
         booleanParam(name: 'HEADLESS', defaultValue: false, description: 'Headless режим')
         string(name: 'THREAD_COUNT', defaultValue: '4', description: 'Количество потоков')
         choice(name: 'TESTS_SCOPE', choices: ['all', 'critical', 'extended'], description: 'Объем тестов')
     }
 
+    environment {
+        BROWSER = "${params.BROWSER}"
+        HEADLESS = "${params.HEADLESS}"
+        SELENOID_URL = "http://selenoid1:4444"
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
+                git branch: "${params.BRANCH}",
                     url: 'https://github.com/dimamoryk/AutoTestWithSelenide.git',
                     credentialsId: 'github-credentials'
             }
@@ -25,13 +26,13 @@ pipeline {
 
         stage('Run Selenide Tests') {
             steps {
-                sh '''
+                sh """
                     mvn clean test \
                         -Dbrowser=${BROWSER} \
                         -Dheadless=${HEADLESS} \
                         -Dthreads=${THREAD_COUNT} \
                         -Dtest.scope=${TESTS_SCOPE}
-                '''
+                """
             }
         }
 

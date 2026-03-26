@@ -5,9 +5,11 @@
   },
   "response": {
     "status": 200,
-    "body": [
-      {"name": "Test user", "course": "QA", "email": "test@test.test", "age": 23}
-    ],
+    "jsonBody": {
+      "users": [
+        {"name": "Test user", "course": "QA", "email": "test@test.test", "age": 23}
+      ]
+    },
     "headers": {
       "Content-Type": "application/json"
     }

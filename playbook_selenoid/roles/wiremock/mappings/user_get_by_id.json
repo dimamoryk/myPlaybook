@@ -5,7 +5,10 @@
   },
   "response": {
     "status": 200,
-    "body": "{\"name\": \"Test user\", \"score\": 78}",
+    "jsonBody": {
+      "name": "Test user",
+      "score": 78
+    },
     "headers": {
       "Content-Type": "application/json"
     }

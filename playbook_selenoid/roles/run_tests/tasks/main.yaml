@@ -7,6 +7,8 @@
     - maven
     - openjdk-21-jdk-headless
     - git
+    - npm
+    - nodejs
 
 - name: Create tests directory
   file:
@@ -14,38 +16,16 @@
     state: directory
     mode: '0755'
 
+# ============================================
+# UI TESTS (Selenoid)
+# ============================================
 - name: Clone UI tests (Selenoid)
   git:
     repo: "https://github.com/dimamoryk/AutotestWithSelenoid.git"
     dest: "/tmp/automation_tests/ui-tests"
-    version: main
+    version: "{{ test_branch | default('main') }}"
   ignore_errors: yes
   when: test_type == 'ui' or test_type == 'all'
-
-- name: Clone API tests (RestAssured)
-  git:
-#    repo: "https://github.com/dimamoryk/RestAssuredAutoTest.git"
-    repo: "https://github.com/dimamoryk/AutotestWithStubApi1.git"
-    dest: "/tmp/automation_tests/api-tests"
-    version: main
-  ignore_errors: yes
-  when: test_type == 'api' or test_type == 'all'
-
-- name: Clone Mobile tests (Appium)
-  git:
-    repo: "https://github.com/dimamoryk/AutoTestWithMobileAppium.git"
-    dest: "/tmp/automation_tests/mobile-tests"
-    version: main
-  ignore_errors: yes
-  when: test_type == 'mobile' or test_type == 'all'
-
-- name: Clone Cucumber tests
-  git:
-    repo: "https://github.com/dimamoryk/AutotestWithCucumber.git"
-    dest: "/tmp/automation_tests/cucumber-tests"
-    version: main
-  ignore_errors: yes
-  when: test_type == 'cucumber' or test_type == 'all'
 
 - name: Run UI tests
   shell: |
@@ -54,12 +34,34 @@
   ignore_errors: yes
   when: test_type == 'ui' or test_type == 'all'
 
+# ============================================
+# API TESTS (RestAssured)
+# ============================================
+- name: Clone API tests (RestAssured)
+  git:
+    repo: "https://github.com/dimamoryk/AutotestWithStubApi1.git"
+    dest: "/tmp/automation_tests/api-tests"
+    version: "{{ test_branch | default('main') }}"
+  ignore_errors: yes
+  when: test_type == 'api' or test_type == 'all'
+
 - name: Run API tests
   shell: |
     cd /tmp/automation_tests/api-tests
     mvn clean test || true
   ignore_errors: yes
   when: test_type == 'api' or test_type == 'all'
+
+# ============================================
+# MOBILE TESTS (Appium)
+# ============================================
+- name: Clone Mobile tests (Appium)
+  git:
+    repo: "https://github.com/dimamoryk/AutoTestWithMobileAppium.git"
+    dest: "/tmp/automation_tests/mobile-tests"
+    version: "{{ test_branch | default('main') }}"
+  ignore_errors: yes
+  when: test_type == 'mobile' or test_type == 'all'
 
 - name: Run Mobile tests
   shell: |
@@ -68,9 +70,82 @@
   ignore_errors: yes
   when: test_type == 'mobile' or test_type == 'all'
 
+
+# CUCUMBER TESTS
+
+- name: Clone Cucumber tests
+  git:
+    repo: "https://github.com/dimamoryk/AutotestWithCucumber.git"
+    dest: "/tmp/automation_tests/cucumber-tests"
+    version: "{{ test_branch | default('main') }}"
+  ignore_errors: yes
+  when: test_type == 'cucumber' or test_type == 'all'
+
 - name: Run Cucumber tests
   shell: |
     cd /tmp/automation_tests/cucumber-tests
     mvn clean test || true
   ignore_errors: yes
   when: test_type == 'cucumber' or test_type == 'all'
+
+
+# PLAYWRIGHT TESTS
+
+- name: Clone Playwright tests
+  git:
+    repo: "https://github.com/dimamoryk/AutoTestWithPlayWright2.git"
+    dest: "/tmp/automation_tests/playwright-tests"
+    version: "{{ test_branch | default('main') }}"
+  ignore_errors: yes
+  when: test_type == 'playwright' or test_type == 'all'
+
+- name: Install Playwright dependencies
+  shell: |
+    cd /tmp/automation_tests/playwright-tests
+    npm install || true
+    npx playwright install chromium || true
+  ignore_errors: yes
+  when: test_type == 'playwright' or test_type == 'all'
+
+- name: Run Playwright tests
+  shell: |
+    cd /tmp/automation_tests/playwright-tests
+    npm test || true
+  ignore_errors: yes
+  when: test_type == 'playwright' or test_type == 'all'
+
+
+# EXPECTATIONS TESTS
+
+- name: Clone Expectations tests
+  git:
+    repo: "https://github.com/dimamoryk/AutotestWithExpectations1.git"
+    dest: "/tmp/automation_tests/expectations-tests"
+    version: "{{ test_branch | default('main') }}"
+  ignore_errors: yes
+  when: test_type == 'expectations' or test_type == 'all'
+
+- name: Run Expectations tests
+  shell: |
+    cd /tmp/automation_tests/expectations-tests
+    mvn clean test || true
+  ignore_errors: yes
+  when: test_type == 'expectations' or test_type == 'all'
+
+
+# SELENIDE TESTS
+
+- name: Clone Selenide tests
+  git:
+    repo: "https://github.com/dimamoryk/AutoTestWithSelenide.git"
+    dest: "/tmp/automation_tests/selenide-tests"
+    version: "{{ test_branch | default('main') }}"
+  ignore_errors: yes
+  when: test_type == 'selenide' or test_type == 'all'
+
+- name: Run Selenide tests
+  shell: |
+    cd /tmp/automation_tests/selenide-tests
+    mvn clean test || true
+  ignore_errors: yes
+  when: test_type == 'selenide' or test_type == 'all'

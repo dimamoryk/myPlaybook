@@ -1,10 +1,22 @@
 ---
-- name: Setup Selenoid
+- name: Setup Selenoid and run tests
   hosts: localhost
   become: true
   gather_facts: true
   vars_files:
     - group_vars/all.yaml
+
+  vars:
+    test_branch: "{{ test_branch | default('main') }}"  # ветка по умолчанию
+
+  tasks:
+    - name: Run tests with specific branch
+      shell: |
+        cd /tmp/automation_tests/ui-tests
+        git checkout {{ test_branch }}
+        mvn clean test
+      when: test_type == 'ui'
+      ignore_errors: yes
 
   roles:
     - common

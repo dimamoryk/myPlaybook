@@ -1,61 +1,36 @@
 pipeline {
     agent any
 
-    environment {
-        APPIUM_URL = "${params.APPIUM_URL}"
-        PLATFORM = "${params.PLATFORM}"
-        DEVICE_NAME = "${params.DEVICE_NAME}"
-    }
-
     parameters {
-        choice(name: 'PLATFORM', choices: ['android', 'ios'], description: 'Платформа')
-        string(name: 'APPIUM_URL', defaultValue: 'http://appium:4723', description: 'Appium Server URL')
-        string(name: 'DEVICE_NAME', defaultValue: 'Android Emulator', description: 'Имя устройства')
-        string(name: 'APP_PATH', defaultValue: '/apps/app.apk', description: 'Путь к приложению')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Ветка репозитория')
+        choice(name: 'EMULATOR', choices: ['android-12', 'android-14'], description: 'Эмулятор')
+        string(name: 'DATABASE_URL', defaultValue: 'jdbc:postgresql://sql.otus.kartushin.su:5432/wishlist', description: 'URL БД')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
+                git branch: "${params.BRANCH}",
                     url: 'https://github.com/dimamoryk/AutoTestWithMobileAppium.git',
                     credentialsId: 'github-credentials'
             }
         }
-
         stage('Run Mobile Tests') {
             steps {
-                sh '''
-                    mvn clean test \
-                        -Dplatform=${PLATFORM} \
-                        -Dappium.url=${APPIUM_URL} \
-                        -Ddevice.name=${DEVICE_NAME} \
-                        -Dapp.path=${APP_PATH}
-                '''
-            }
-        }
-
-        stage('Publish Reports') {
-            steps {
-                publishHTML([
-                    reportDir: 'target/surefire-reports',
-                    reportFiles: '*.html',
-                    reportName: 'Mobile Test Reports'
-                ])
-                junit 'target/surefire-reports/*.xml'
+                script {
+                    def appiumPort = (params.EMULATOR == 'android-12') ? '4723' : '4724'
+                    sh """
+                        mvn clean test \
+                            -Dappium.port=${appiumPort} \
+                            -DdatabaseUrl=${params.DATABASE_URL}
+                    """
+                }
             }
         }
     }
-
     post {
         always {
             cleanWs()
-        }
-        failure {
-            echo 'Mobile tests failed!'
-        }
-        success {
-            echo 'Mobile tests passed successfully!'
         }
     }
 }

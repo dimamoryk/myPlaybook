@@ -2,19 +2,19 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'FEATURE', defaultValue: '', description: 'Конкретный feature файл (оставь пустым для всех)')
-        choice(name: 'TAGS', choices: ['@smoke', '@regression', '@all'], description: 'Теги для запуска')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Ветка репозитория')
+        string(name: 'FEATURE', defaultValue: '', description: 'Конкретный feature файл')
+        choice(name: 'TAGS', choices: ['@smoke', '@regression', '@all'], description: 'Теги')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
+                git branch: "${params.BRANCH}",
                     url: 'https://github.com/dimamoryk/AutotestWithCucumber.git',
                     credentialsId: 'github-credentials'
             }
         }
-
         stage('Run Cucumber Tests') {
             steps {
                 script {
@@ -28,33 +28,6 @@ pipeline {
                     sh cmd
                 }
             }
-        }
-
-        stage('Publish Reports') {
-            steps {
-                cucumber(
-                    fileIncludePattern: 'target/cucumber-reports/*.json',
-                    sortingMethod: 'ALPHABETICAL',
-                    trendsLimit: 10
-                )
-                publishHTML([
-                    reportDir: 'target/cucumber-reports',
-                    reportFiles: 'index.html',
-                    reportName: 'Cucumber Reports'
-                ])
-            }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
-        }
-        failure {
-            echo 'Cucumber tests failed!'
-        }
-        success {
-            echo 'Cucumber tests passed successfully!'
         }
     }
 }

@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     parameters {
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Ветка репозитория')
         string(name: 'BROWSER', defaultValue: 'chromium', description: 'Браузер: chromium/firefox/webkit')
         booleanParam(name: 'HEADLESS', defaultValue: true, description: 'Headless режим')
     }
@@ -9,45 +10,19 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
+                git branch: "${params.BRANCH}",
                     url: 'https://github.com/dimamoryk/AutoTestWithPlayWright2.git',
                     credentialsId: 'github-credentials'
             }
         }
-
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    npm install
-                    npx playwright install ${BROWSER}
-                '''
-            }
-        }
-
         stage('Run Playwright Tests') {
             steps {
-                sh '''
-                    npm test -- \
-                        --project=${BROWSER} \
-                        --headed=${!HEADLESS}
-                '''
+                sh """
+                    npm install
+                    npx playwright install ${params.BROWSER}
+                    npm test -- --project=${params.BROWSER} --headed=${!params.HEADLESS}
+                """
             }
-        }
-
-        stage('Publish Reports') {
-            steps {
-                publishHTML([
-                    reportDir: 'playwright-report',
-                    reportFiles: 'index.html',
-                    reportName: 'Playwright Test Reports'
-                ])
-            }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
         }
     }
 }

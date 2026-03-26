@@ -1,37 +1,29 @@
 pipeline {
     agent any
 
-    environment {
-        WIREMOCK_URL = "${params.WIREMOCK_URL}"
-        API_BASE_URL = "${params.API_BASE_URL}"
-    }
-
     parameters {
-        string(name: 'WIREMOCK_URL', defaultValue: 'http://wiremock_server:8080', description: 'Wiremock URL')
-        string(name: 'API_BASE_URL', defaultValue: 'http://localhost:8080', description: 'API Base URL')
-        choice(name: 'ENVIRONMENT', choices: ['dev', 'test', 'staging'], description: 'Окружение')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Ветка репозитория')
+        string(name: 'WIREMOCK_URL', defaultValue: 'http://wiremock:8080', description: 'URL Wiremock')
+        string(name: 'TEST_SUITE', defaultValue: '', description: 'Конкретный тестовый класс')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/dimamoryk/RestAssuredAutoTest.git',
+                git branch: "${params.BRANCH}",
+                    url: 'https://github.com/dimamoryk/AutotestWithStubApi1.git',
                     credentialsId: 'github-credentials'
             }
         }
-
         stage('Run API Tests') {
             steps {
-                sh '''
+                sh """
                     mvn clean test \
-                        -Dwiremock.url=${WIREMOCK_URL} \
-                        -Dapi.base.url=${API_BASE_URL} \
-                        -Denvironment=${ENVIRONMENT}
-                '''
+                        -Dwiremock.url=${params.WIREMOCK_URL} \
+                        ${params.TEST_SUITE ? "-Dtest=${params.TEST_SUITE}" : ""}
+                """
             }
         }
-
         stage('Publish Reports') {
             steps {
                 publishHTML([
@@ -43,16 +35,9 @@ pipeline {
             }
         }
     }
-
     post {
         always {
             cleanWs()
-        }
-        failure {
-            echo 'API tests failed!'
-        }
-        success {
-            echo 'API tests passed successfully!'
         }
     }
 }

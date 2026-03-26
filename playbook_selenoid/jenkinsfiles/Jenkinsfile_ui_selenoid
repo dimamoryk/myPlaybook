@@ -1,13 +1,8 @@
 pipeline {
     agent any
 
-    environment {
-        SELENOID_URL = "${params.SELENOID_URL}"
-        BROWSER = "${params.BROWSER}"
-        DOCKER_HOST = "unix:///var/run/docker.sock"
-    }
-
     parameters {
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Ветка репозитория')
         string(name: 'BROWSER', defaultValue: 'chrome', description: 'Браузер: chrome/firefox')
         string(name: 'BROWSER_VERSION', defaultValue: 'latest', description: 'Версия браузера')
         string(name: 'SELENOID_URL', defaultValue: 'http://selenoid1:4444', description: 'Selenoid Grid URL')
@@ -17,24 +12,22 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
+                git branch: "${params.BRANCH}",
                     url: 'https://github.com/dimamoryk/AutotestWithSelenoid.git',
                     credentialsId: 'github-credentials'
             }
         }
-
         stage('Run UI Tests') {
             steps {
-                sh '''
+                sh """
                     mvn clean test \
-                        -Dselenoid.url=${SELENOID_URL} \
-                        -Dbrowser=${BROWSER} \
-                        -Dbrowser.version=${BROWSER_VERSION} \
-                        -Dtest.scope=${TESTS_SCOPE}
-                '''
+                        -Dselenoid.url="${params.SELENOID_URL}" \
+                        -Dbrowser=${params.BROWSER} \
+                        -Dbrowser.version="${params.BROWSER_VERSION}" \
+                        -Dtest.scope="${params.TESTS_SCOPE}"
+                """
             }
         }
-
         stage('Publish Reports') {
             steps {
                 publishHTML([
@@ -46,7 +39,6 @@ pipeline {
             }
         }
     }
-
     post {
         always {
             cleanWs()
